@@ -477,14 +477,6 @@ Run `make test` locally before publishing changes. The suite is designed to use 
 
 **Sravani Elavarthi**
 
-MS in Data Science, University of Maryland, College Park
-
-Software engineer (Java, Python, backend and ML systems) · Ashburn, VA
-
-- LinkedIn: [linkedin.com/in/sravani-elavarthi](https://www.linkedin.com/in/sravani-elavarthi)
-- GitHub: [github.com/sravani150602](https://github.com/sravani150602)
-- Email: [sravanireddy1506@gmail.com](mailto:sravanireddy1506@gmail.com)
-
 </td>
 </tr>
 </table>
