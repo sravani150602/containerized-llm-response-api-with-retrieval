@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+.pytest_cache/
+.ruff_cache/
+hf-cache/
+*.log
+# LoRA adapter weights are small but we keep the repo code-only; see README for how to reproduce
+artifacts/*
+!artifacts/README.md

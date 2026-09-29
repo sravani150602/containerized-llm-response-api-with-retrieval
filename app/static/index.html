@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Workplace Assistant · LLM + RAG API</title>
+<style>
+  :root { --bg:#0f1419; --panel:#161d26; --line:#263241; --text:#e6edf3; --muted:#8b9bb0; --accent:#4f9dff; --ok:#3fb950; --warn:#d29922; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--text); }
+  header { padding:16px 24px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  header h1 { font-size:17px; margin:0; }
+  .pill { font-size:12px; padding:2px 8px; border-radius:99px; border:1px solid var(--line); color:var(--muted); }
+  .pill.ok { color:var(--ok); border-color:#1f4a2a; }
+  main { max-width:900px; margin:0 auto; padding:20px 16px 140px; }
+  .msg { margin:14px 0; padding:14px 16px; border-radius:10px; background:var(--panel); border:1px solid var(--line); }
+  .msg.user { background:#1a2a40; border-color:#24405f; }
+  .role { font-size:12px; color:var(--muted); margin-bottom:4px; text-transform:uppercase; letter-spacing:.04em; }
+  .meta { margin-top:10px; font-size:12px; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap; }
+  .badge { padding:1px 7px; border-radius:6px; background:#0d2a17; color:var(--ok); }
+  .badge.miss { background:#2b2210; color:var(--warn); }
+  details { margin-top:10px; font-size:13px; }
+  summary { cursor:pointer; color:var(--accent); }
+  .src { margin:8px 0; padding:8px 10px; border-left:3px solid var(--accent); background:#111820; border-radius:4px; }
+  .src b { font-size:12px; }
+  .src small { color:var(--muted); }
+  form { position:fixed; bottom:0; left:0; right:0; background:var(--bg); border-top:1px solid var(--line); padding:14px 16px; }
+  .row { max-width:900px; margin:0 auto; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  input[type=text] { flex:1; min-width:200px; padding:12px 14px; border-radius:8px; border:1px solid var(--line); background:var(--panel); color:var(--text); font-size:15px; }
+  button { padding:12px 18px; border:0; border-radius:8px; background:var(--accent); color:#fff; font-weight:600; cursor:pointer; }
+  label { font-size:13px; color:var(--muted); display:flex; gap:4px; align-items:center; }
+  .examples { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+  .examples button { background:var(--panel); border:1px solid var(--line); color:var(--text); font-weight:400; padding:6px 10px; font-size:13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Workplace Assistant</h1>
+  <span class="pill" id="model">loading…</span>
+  <span class="pill" id="cache">cache</span>
+  <span class="pill" id="storage">storage</span>
+  <span class="pill" id="chunks">index</span>
+</header>
+<main id="chat">
+  <div class="examples" id="examples"></div>
+</main>
+<form id="f">
+  <div class="row">
+    <input id="q" type="text" placeholder="Ask about PTO, expenses, IT security, holidays…" autocomplete="off" required>
+    <label><input type="checkbox" id="rag" checked> RAG</label>
+    <label><input type="checkbox" id="cacheOn" checked> cache</label>
+    <button>Ask</button>
+  </div>
+</form>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const examples = ["How many PTO days do I get per year?", "What is the hotel limit in New York?",
+  "Who leads the IT Help Desk?", "When is Thanksgiving in 2026?", "What should I do if I get a phishing email?"];
+for (const e of examples) { const b = document.createElement("button"); b.type = "button"; b.textContent = e;
+  b.onclick = () => { $("q").value = e; ask(); }; $("examples").appendChild(b); }
+
+fetch("/health").then(r => r.json()).then(h => {
+  $("model").textContent = h.model.split("/").pop() + (h.adapter ? " + LoRA" : "");
+  $("model").classList.add("ok");
+  $("cache").textContent = "cache: " + h.cache; if (h.cache === "redis") $("cache").classList.add("ok");
+  $("storage").textContent = "storage: " + h.storage; if (h.storage === "s3") $("storage").classList.add("ok");
+  $("chunks").textContent = h.chunks_indexed + " chunks indexed";
+});
+
+function add(role, html) { const d = document.createElement("div"); d.className = "msg " + role;
+  d.innerHTML = `<div class="role">${role === "user" ? "You" : "Assistant"}</div>` + html;
+  $("chat").appendChild(d); d.scrollIntoView({behavior: "smooth"}); return d; }
+
+async function ask() {
+  const question = $("q").value.trim(); if (!question) return;
+  add("user", esc(question)); $("q").value = "";
+  const box = add("bot", "<div>…</div>");
+  const t0 = performance.now();
+  const r = await fetch("/v1/chat", {method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({question, use_rag: $("rag").checked, use_cache: $("cacheOn").checked})});
+  const data = await r.json(); const ms = (performance.now() - t0).toFixed(0);
+  const srcs = data.sources.map(s => `<div class="src"><b>${esc(s.title)}</b> <small>${esc(s.source)} · score ${s.score}</small><div>${esc(s.text.slice(0, 300))}</div></div>`).join("");
+  box.innerHTML = `<div class="role">Assistant</div><div>${esc(data.answer)}</div>
+    <div class="meta"><span class="badge ${data.cached ? "" : "miss"}">${data.cached ? "cache hit" : "cache miss"}</span>
+    <span>total ${data.timings.total_ms} ms</span><span>retrieval ${data.timings.retrieval_ms} ms</span>
+    <span>generation ${data.timings.generation_ms} ms</span><span>round-trip ${ms} ms</span></div>
+    ${srcs ? `<details open><summary>${data.sources.length} retrieved sources</summary>${srcs}</details>` : ""}`;
+}
+$("f").onsubmit = (e) => { e.preventDefault(); ask(); };
+</script>
+</body>
+</html>

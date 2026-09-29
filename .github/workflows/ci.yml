@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check app tests training eval loadtest scripts
+      - name: Unit + API tests (echo backend, no model download)
+        run: pytest
+        env:
+          LLM_BACKEND: echo
+          REDIS_URL: ""
+      - name: Redis integration smoke test
+        run: python -c "from app.cache import build_cache; c = build_cache('redis://localhost:6379/0'); assert c.name == 'redis'; c.set('llmrag:t', {'a': 1}, 10); assert c.get('llmrag:t') == {'a': 1}; print('redis ok')"
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build API image
+        run: docker build -f docker/Dockerfile -t llm-rag-api:ci .

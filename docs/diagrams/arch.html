@@ -1,0 +1,136 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+body{margin:0;background:#fff;font-family:"DejaVu Sans","Segoe UI",Arial,sans-serif}
+</style></head><body>
+<svg id="d" xmlns="http://www.w3.org/2000/svg" width="1280" height="760" viewBox="0 0 1280 760">
+<defs>
+<marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#57606a"/></marker>
+<marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f6fdb"/></marker>
+<style>
+.t{font-size:15px;fill:#1f2328;font-weight:700}.s{font-size:12.5px;fill:#57606a}.h{font-size:13px;fill:#2f6fdb;font-weight:700;letter-spacing:.06em}
+.box{fill:#fff;stroke:#d0d7de;stroke-width:1.5;rx:10}.blue{fill:#eef4ff;stroke:#2f6fdb}.green{fill:#edf8f0;stroke:#2da44e}.red{fill:#fff0ee;stroke:#cf222e}.orange{fill:#fff5ea;stroke:#e0833a}.purple{fill:#f5f0ff;stroke:#8250df}
+.ln{stroke:#57606a;stroke-width:1.6;fill:none}.lb{stroke:#2f6fdb;stroke-width:2;fill:none}.n{font-size:12px;fill:#fff;font-weight:700}
+</style></defs>
+<text x="30" y="38" style="font-size:22px;font-weight:700;fill:#1f2328">Containerized LLM Response API with Retrieval: system architecture</text>
+<text x="30" y="62" class="s">Online path (blue) serves a request. The offline path (bottom) trains the LoRA adapter and evaluates hallucinations.</text>
+
+<!-- client -->
+<rect x="20" y="170" width="150" height="150" class="box"/>
+<text x="34" y="198" class="h">CLIENTS</text>
+<text x="34" y="226" class="t">Web chat UI /</text>
+<text x="34" y="248" class="t">Swagger /docs</text>
+<text x="34" y="272" class="s">curl, apps,</text>
+<text x="34" y="292" class="s">load-test users</text>
+
+<!-- docker compose boundary -->
+<rect x="240" y="90" width="1010" height="410" rx="14" fill="#fafbfc" stroke="#8c959f" stroke-dasharray="7 5" stroke-width="1.5"/>
+<text x="258" y="114" class="h" style="fill:#57606a">DOCKER COMPOSE STACK</text>
+
+<!-- api container -->
+<rect x="258" y="128" width="640" height="356" rx="12" class="box blue"/>
+<text x="276" y="154" class="h">API CONTAINER · FastAPI + Uvicorn (CPU)</text>
+
+<!-- steps -->
+<g>
+<rect x="276" y="170" width="190" height="84" class="box"/>
+<circle cx="296" cy="192" r="11" fill="#2f6fdb"/><text x="292" y="196" class="n">1</text>
+<text x="314" y="197" class="t">Cache lookup</text>
+<text x="290" y="220" class="s">key = hash(question,</text>
+<text x="290" y="238" class="s">index version, model)</text>
+
+<rect x="490" y="170" width="190" height="84" class="box"/>
+<circle cx="510" cy="192" r="11" fill="#2f6fdb"/><text x="506" y="196" class="n">2</text>
+<text x="528" y="197" class="t">Hybrid retriever</text>
+<text x="504" y="220" class="s">BM25 + TF-IDF bigrams</text>
+<text x="504" y="238" class="s">fused with RRF → top-k</text>
+
+<rect x="704" y="170" width="176" height="84" class="box"/>
+<circle cx="724" cy="192" r="11" fill="#2f6fdb"/><text x="720" y="196" class="n">3</text>
+<text x="742" y="197" class="t">Prompt builder</text>
+<text x="718" y="220" class="s">system rules +</text>
+<text x="718" y="238" class="s">context + question</text>
+
+<rect x="490" y="290" width="390" height="104" class="box orange"/>
+<circle cx="510" cy="312" r="11" fill="#e0833a"/><text x="506" y="316" class="n">4</text>
+<text x="528" y="317" class="t">LLM: SmolLM2-360M-Instruct + LoRA</text>
+<text x="504" y="342" class="s">LoRA adapter merged into base weights at startup</text>
+<text x="504" y="361" class="s">greedy decoding · max 96 new tokens · streaming (SSE)</text>
+<text x="504" y="380" class="s">answers only from context, otherwise abstains</text>
+
+<rect x="276" y="290" width="190" height="104" class="box"/>
+<circle cx="296" cy="312" r="11" fill="#2f6fdb"/><text x="292" y="316" class="n">5</text>
+<text x="314" y="317" class="t">Response</text>
+<text x="290" y="342" class="s">answer + sources +</text>
+<text x="290" y="361" class="s">timings; stored in cache</text>
+<text x="290" y="380" class="s">(TTL 1 h)</text>
+
+<rect x="276" y="410" width="560" height="58" class="box"/>
+<text x="290" y="434" class="t">Ingestion &amp; indexing</text>
+<text x="290" y="455" class="s">Markdown → heading-aware chunks · CSV / JSON rows → record chunks</text>
+</g>
+<path d="M466 212 H486" class="lb" marker-end="url(#ab)"/>
+<path d="M680 212 H700" class="lb" marker-end="url(#ab)"/>
+<path d="M792 254 V286" class="lb" marker-end="url(#ab)"/>
+<path d="M490 342 H470" class="lb" marker-end="url(#ab)"/>
+
+<!-- client arrows -->
+<path d="M170 225 H272" class="lb" marker-end="url(#ab)"/>
+<text x="178" y="216" class="s" style="fill:#2f6fdb">/v1/chat</text>
+<path d="M272 342 H222 V290 H174" class="lb" marker-end="url(#ab)"/>
+<text x="178" y="360" class="s" style="fill:#2f6fdb">JSON/SSE</text>
+
+<!-- redis -->
+<rect x="930" y="140" width="300" height="104" rx="12" class="box red"/>
+<text x="948" y="166" class="h" style="fill:#cf222e">REDIS 7</text>
+<text x="948" y="192" class="t">Response cache</text>
+<text x="948" y="214" class="s">LRU, 256 MB, TTL per answer</text>
+<text x="948" y="232" class="s">falls back to in-memory if down</text>
+<path d="M926 200 H906 V272 H371 V258" class="ln" marker-end="url(#a)" marker-start="url(#a)"/>
+<text x="560" y="286" class="s">GET / SET (Redis)</text>
+
+<!-- s3 -->
+<rect x="930" y="270" width="300" height="124" rx="12" class="box green"/>
+<text x="948" y="296" class="h" style="fill:#2da44e">S3 · AWS or MinIO</text>
+<text x="948" y="322" class="t">Knowledge base bucket</text>
+<text x="948" y="344" class="s">s3://llm-rag-knowledge-base/kb/</text>
+<text x="948" y="364" class="s">unstructured/*.md (policies)</text>
+<text x="948" y="382" class="s">structured/*.csv, *.json (tables)</text>
+<path d="M926 370 C900 410 880 439 840 439" class="ln" marker-end="url(#a)"/>
+<text x="850" y="480" class="s">read</text>
+
+<!-- prometheus -->
+<rect x="930" y="414" width="300" height="70" rx="12" class="box purple"/>
+<text x="948" y="440" class="h" style="fill:#8250df">GET /metrics</text>
+<text x="948" y="464" class="s">Prometheus: latency, TTFT, cache hits</text>
+
+<!-- offline -->
+<rect x="30" y="540" width="1220" height="190" rx="14" fill="#fffdf7" stroke="#e0833a" stroke-dasharray="7 5" stroke-width="1.5"/>
+<text x="48" y="566" class="h" style="fill:#e0833a">OFFLINE · TRAINING &amp; EVALUATION</text>
+<rect x="48" y="584" width="230" height="124" class="box"/>
+<text x="64" y="610" class="t">make_dataset.py</text>
+<text x="64" y="634" class="s">1,200 synthetic workplace</text>
+<text x="64" y="652" class="s">conversations: grounded,</text>
+<text x="64" y="670" class="s">abstain, conversational</text>
+<text x="64" y="690" class="s">(fictional companies)</text>
+<rect x="318" y="584" width="260" height="124" class="box orange"/>
+<text x="334" y="610" class="t">train_lora.py</text>
+<text x="334" y="634" class="s">PEFT LoRA r=16, α=32 on all</text>
+<text x="334" y="652" class="s">attention + MLP projections</text>
+<text x="334" y="670" class="s">loss on answer tokens only</text>
+<text x="334" y="690" class="s">runs on a laptop CPU</text>
+<rect x="618" y="584" width="230" height="124" class="box"/>
+<text x="634" y="610" class="t">LoRA adapter</text>
+<text x="634" y="634" class="s">artifacts/lora-adapter/</text>
+<text x="634" y="652" class="s">mounted into the container</text>
+<text x="634" y="670" class="s">and merged at startup</text>
+<rect x="888" y="584" width="342" height="124" class="box"/>
+<text x="904" y="610" class="t">hallucination_eval.py + load_test.py</text>
+<text x="904" y="634" class="s">63 held-out questions (48 answerable,</text>
+<text x="904" y="652" class="s">15 unanswerable) × 4 configurations</text>
+<text x="904" y="670" class="s">async concurrent users → p50/p95/p99,</text>
+<text x="904" y="690" class="s">TTFT, cache hit rate</text>
+<path d="M278 646 H314" class="ln" marker-end="url(#a)"/>
+<path d="M578 646 H614" class="ln" marker-end="url(#a)"/>
+<path d="M848 646 H884" class="ln" marker-end="url(#a)"/>
+<path d="M830 584 V520 H862 V398" class="ln" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<text x="870" y="524" class="s">loaded by the API</text>
+</svg></body></html>

@@ -1,0 +1,29 @@
+<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;background:#fff;font-family:"DejaVu Sans",Arial,sans-serif}</style></head><body>
+<svg id="d" xmlns="http://www.w3.org/2000/svg" width="1100" height="500" viewBox="0 0 1100 500">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#57606a"/></marker>
+<style>.t{font-size:16px;fill:#1f2328;font-weight:700}.s{font-size:13px;fill:#57606a}.big{font-size:30px;fill:#1f2328;font-weight:700}.ln{stroke:#57606a;stroke-width:1.6;fill:none}</style></defs>
+<text x="30" y="40" style="font-size:22px;font-weight:700;fill:#1f2328">How LoRA fine-tuning works in this project</text>
+<text x="30" y="64" class="s">The pretrained weight W stays frozen. Only two thin matrices A and B are trained, then merged back into W for serving.</text>
+<!-- input -->
+<rect x="40" y="190" width="90" height="60" rx="8" fill="#f6f8fa" stroke="#d0d7de"/><text x="78" y="226" class="t">x</text>
+<text x="40" y="275" class="s">input</text>
+<rect x="230" y="140" width="260" height="160" rx="8" fill="#eaeef2" stroke="#8c959f" stroke-width="1.5"/>
+<text x="252" y="200" class="big">W</text><text x="292" y="200" class="t">(frozen)</text>
+<text x="252" y="232" class="s">e.g. 960 × 960 per projection</text>
+<text x="252" y="254" class="s">~362M params in the model</text>
+<text x="252" y="280" class="s">no gradient, not updated</text>
+<text x="400" y="352" class="t" style="fill:#e0833a">trainable LoRA branch (&lt;3% of params)</text>
+<rect x="400" y="366" width="170" height="56" rx="6" fill="#fff5ea" stroke="#e0833a" stroke-width="1.8"/>
+<text x="416" y="392" class="t">A</text><text x="436" y="392" class="s">r × d, r = 16</text><text x="416" y="410" class="s">projects down</text>
+<rect x="620" y="366" width="190" height="56" rx="6" fill="#fff5ea" stroke="#e0833a" stroke-width="1.8"/>
+<text x="636" y="392" class="t">B</text><text x="656" y="392" class="s">d × r, starts at 0</text><text x="636" y="410" class="s">projects back up</text>
+<circle cx="880" cy="220" r="26" fill="#fff" stroke="#57606a" stroke-width="1.6"/><text x="869" y="231" class="big" style="font-size:28px">+</text>
+<rect x="946" y="190" width="146" height="60" rx="8" fill="#eef4ff" stroke="#2f6fdb"/><text x="960" y="226" class="t">h = Wx + ΔWx</text>
+<path d="M130 220 H226" class="ln" marker-end="url(#a)"/>
+<path d="M170 220 V394 H396" class="ln" marker-end="url(#a)"/>
+<path d="M490 220 H850" class="ln" marker-end="url(#a)"/>
+<path d="M570 394 H616" class="ln" marker-end="url(#a)"/>
+<path d="M810 394 H880 V250" class="ln" marker-end="url(#a)"/>
+<path d="M906 220 H946" class="ln" marker-end="url(#a)"/>
+<text x="30" y="470" class="s" style="font-size:14px">ΔW = (α / r) · B·A with α = 32, r = 16. After training, merge_and_unload() computes W' = W + ΔW, so serving costs exactly the same as the base model.</text>
+</svg></body></html>

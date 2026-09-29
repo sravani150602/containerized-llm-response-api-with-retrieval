@@ -1,0 +1,11 @@
+.git
+.venv
+venv
+__pycache__
+*.pyc
+results
+docs
+tests
+training/data
+.github
+hf-cache
